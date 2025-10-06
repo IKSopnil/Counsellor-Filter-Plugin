@@ -3,7 +3,7 @@
 Plugin Name: Counsellor Finder
 Description: Manage and display counsellors with filters (specialties, client groups, and locations).
 Version: 1.1.0
-Author: You
+Author: Mohammad Ibrahim Khalil
 */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
@@ -53,11 +53,16 @@ add_action('add_meta_boxes','cf_add_metaboxes');
 function cf_render_metabox($post){
     $email = get_post_meta($post->ID,'cf_email',true);
     $phone = get_post_meta($post->ID,'cf_phone',true);
+    $degree = get_post_meta($post->ID,'cf_degree',true);
     ?>
     <p><label>Email<br>
     <input type="email" name="cf_email" value="<?php echo esc_attr($email); ?>" style="width:100%"></label></p>
+    
     <p><label>Phone<br>
     <input type="text" name="cf_phone" value="<?php echo esc_attr($phone); ?>" style="width:100%"></label></p>
+    
+    <p><label>Degree (e.g., MA, RCC)<br>
+    <input type="text" name="cf_degree" value="<?php echo esc_attr($degree); ?>" style="width:100%"></label></p>
     <?php
 }
 
@@ -68,7 +73,11 @@ function cf_save_metabox($post_id){
     if(isset($_POST['cf_phone'])){
         update_post_meta($post_id,'cf_phone',sanitize_text_field($_POST['cf_phone']));
     }
+    if(isset($_POST['cf_degree'])){
+        update_post_meta($post_id,'cf_degree',sanitize_text_field($_POST['cf_degree']));
+    }
 }
+
 add_action('save_post_counsellor','cf_save_metabox');
 
 /**
@@ -95,18 +104,20 @@ function cf_rest_get_counsellors($request){
         $query->the_post();
         $id=get_the_ID();
 
-        $c=[
-            'id'=>$id,
-            'title'=>get_the_title(),
-            'content'=>get_the_excerpt(),
-            'permalink'=>get_permalink(),
-            'thumbnail'=>get_the_post_thumbnail_url($id,'medium'),
-            'email'=>get_post_meta($id,'cf_email',true),
-            'phone'=>get_post_meta($id,'cf_phone',true),
-            'specialties'=>wp_get_post_terms($id,'specialty',['fields'=>'names']),
-            'client_groups'=>wp_get_post_terms($id,'client_group',['fields'=>'names']),
-            'locations'=>wp_get_post_terms($id,'location',['fields'=>'names']),
-        ];
+       $c = [
+    'id' => $id,
+    'title' => get_the_title(),
+    'degree' => get_post_meta($id,'cf_degree',true), // <-- added
+    'content' => get_the_excerpt(),
+    'permalink' => get_permalink(),
+    'thumbnail' => get_the_post_thumbnail_url($id,'medium'),
+    'email' => get_post_meta($id,'cf_email',true),
+    'phone' => get_post_meta($id,'cf_phone',true),
+    'specialties' => wp_get_post_terms($id,'specialty',['fields'=>'names']),
+    'client_groups' => wp_get_post_terms($id,'client_group',['fields'=>'names']),
+    'locations' => wp_get_post_terms($id,'location',['fields'=>'names']),
+];
+
         $data['counsellors'][]=$c;
 
         // Collect available term IDs
@@ -135,15 +146,38 @@ add_action('rest_api_init', function(){
 /**
  * Enqueue frontend assets
  */
+/**
+ * Enqueue frontend assets
+ */
 function cf_enqueue_assets() {
-    wp_enqueue_style('cf-frontend',plugin_dir_url(__FILE__).'assets/css/frontend.css',[],time());
-    wp_enqueue_script('cf-frontend',plugin_dir_url(__FILE__).'assets/frontend.js',['jquery'],time(),true);
-    wp_localize_script('cf-frontend','cfData',[
-        'restUrl'=>esc_url(rest_url('counsellor-finder/v1/')),
-        'nonce'=>wp_create_nonce('wp_rest')
+    // CSS
+    wp_enqueue_style(
+        'cf-frontend',
+        plugin_dir_url(__FILE__) . 'assets/css/frontend.css',
+        [],
+        time()
+    );
+
+    // Make sure wp-api is loaded before your script
+    wp_enqueue_script('wp-api');
+
+    // JS
+    wp_enqueue_script(
+        'cf-frontend',
+        plugin_dir_url(__FILE__) . 'assets/frontend.js',
+        ['jquery', 'wp-api'], // ✅ include wp-api here
+        time(),
+        true
+    );
+
+    // Localize data
+    wp_localize_script('cf-frontend', 'cfData', [
+        'restUrl' => esc_url(rest_url('counsellor-finder/v1/')),
+        'nonce'   => wp_create_nonce('wp_rest'),
     ]);
 }
-add_action('wp_enqueue_scripts','cf_enqueue_assets');
+add_action('wp_enqueue_scripts', 'cf_enqueue_assets');
+
 
 /**
  * Shortcode: [counsellor_finder]
@@ -161,10 +195,13 @@ function cf_shortcode() {
         <label>Location:
           <select id="location-filter"><option value="">All</option></select>
         </label>
+        <!-- Clear Filters button -->
+        <button id="cf-clear-filters" class="btn secondary" type="button">Clear Filters</button>
       </div>
       <div id="counsellor-results" class="counsellor-grid"></div>
     </div>
     <?php
     return ob_get_clean();
 }
+
 add_shortcode('counsellor_finder','cf_shortcode');
