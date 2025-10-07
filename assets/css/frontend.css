@@ -11,31 +11,55 @@
 #counsellor-finder .filters {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 16px;
   margin-bottom: 40px;
 }
 
-#counsellor-finder label {
+#counsellor-finder .filters label {
+  display: flex;
+  flex-direction: column;
   font-weight: 500;
   color: #444;
+  font-size: 14px;
 }
 
-#counsellor-finder select {
-  margin-left: 8px;
-  padding: 8px 12px;
+#counsellor-finder .filters select {
+  margin-top: 6px;
+  padding: 10px 14px;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 10px;
   min-width: 180px;
   font-size: 14px;
   background-color: #fff;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-#counsellor-finder select:focus {
+#counsellor-finder .filters select:focus {
   outline: none;
-  border-color: #7b61ff;
+  border-color: #a896c7;
+  box-shadow: 0 0 0 2px rgba(168, 150, 199, 0.25);
+}
+
+/* --- Clear Filters Button --- */
+#cf-clear-filters {
+  background-color: #B5A9C7;
+  color: #fff;
+  padding: 12px 22px;
+  border: none;
+  border-radius: 50px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-top: 24px;
+  line-height: 1; /* centers text */
+}
+
+#cf-clear-filters:hover {
+  background-color: #a292b8;
+  transform: translateY(-1px);
 }
 
 /* --- Counsellor Grid --- */
@@ -62,20 +86,22 @@
   box-shadow: 0 6px 16px rgba(0,0,0,0.08);
 }
 
+/* --- Image (perfect 1:1 ratio) --- */
 .counsellor-card img {
   width: 100%;
-  height: 240px;
+  aspect-ratio: 1 / 1; /* keeps it square */
   object-fit: cover;
+  display: block;
 }
 
+/* --- Text Content --- */
 .counsellor-card h3 {
   font-size: 18px;
-  margin: 16px 20px 12px; /* increased bottom margin for spacing */
+  margin: 16px 20px 12px;
   color: #222;
-  font-weight: 700; /* makes the name bold */
+  font-weight: 700;
 }
 
-/* Optional: subscript degree styling */
 .counsellor-card h3 sub {
   font-size: 0.7em;
   color: #555;
@@ -92,6 +118,7 @@
   color: #000;
 }
 
+/* --- Buttons (pill style, vertically centered) --- */
 .counsellor-card .counsellor-actions {
   margin-top: auto;
   display: flex;
@@ -104,36 +131,69 @@
   flex: 1;
   text-align: center;
   text-decoration: none;
-  background-color: #7b61ff;
-  color: #fff;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-weight: 500;
+  border-radius: 50px;
+  padding: 12px 16px;
+  font-weight: 600;
   font-size: 14px;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1; /* vertically centers text */
 }
 
 .counsellor-card .btn.secondary {
-  background-color: #f5f5f5;
-  color: #333;
-}
-
-.counsellor-card .btn:hover {
-  background-color: #6248ff;
+  background-color: transparent;
+  border: 2px solid #b5a9c7;
+  color: #7d6fa5;
 }
 
 .counsellor-card .btn.secondary:hover {
-  background-color: #e0e0e0;
+  background-color: #f2eff8;
 }
 
-/* --- Responsive --- */
+.counsellor-card .btn {
+  background-color: #b5a9c7;
+  color: #fff;
+}
+
+.counsellor-card .btn:hover {
+  background-color: #a292b8;
+}
+
+/* --- Responsive Filters --- */
 @media (max-width: 768px) {
-  #counsellor-finder select {
-    min-width: 150px;
+  #counsellor-finder {
+    padding: 30px 15px;
+  }
+
+  #counsellor-finder .filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+  }
+
+  #counsellor-finder .filters label {
+    width: 100%;
+  }
+
+  #counsellor-finder .filters select {
+    width: 100%;
+    min-width: unset;
+  }
+
+  #cf-clear-filters {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .counsellor-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-/* ========= Modal Styles (Centered) ========= */
+/* ========= Modal Styles ========= */
 .cf-modal {
   position: fixed;
   top: 0;
@@ -146,9 +206,6 @@
   justify-content: center;
   z-index: 9999;
   padding: 20px;
-
-  /* Center with Flexbox */
-  display: flex;
 }
 
 .cf-modal-content {
@@ -161,19 +218,12 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
   max-height: 90vh;
   overflow-y: auto;
-  transform: translateY(0); /* smooth open effect */
   animation: cfModalFadeIn 0.25s ease-out;
 }
 
 @keyframes cfModalFadeIn {
-  from {
-    transform: translateY(-10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .cf-modal-close {
@@ -199,79 +249,4 @@
 
 .cf-bio-content p {
   line-height: 1.6;
-}
-
-@keyframes cfModalFadeIn {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-/* --- Filter Bar Container --- */
-#counsellor-finder .filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 15px; /* consistent spacing between labels and button */
-  margin-bottom: 40px;
-  justify-content: flex-start; /* aligns everything to the left */
-}
-
-/* --- Labels and dropdowns --- */
-#counsellor-finder .filters label {
-  display: flex;
-  flex-direction: column; /* label above dropdown */
-  font-weight: 500;
-  color: #444;
-  font-size: 14px;
-}
-
-#counsellor-finder .filters select {
-  margin-top: 6px; /* space between label and select */
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  min-width: 160px;
-  font-size: 14px;
-  background-color: #fff;
-  transition: border-color 0.2s;
-}
-
-#counsellor-finder .filters select:focus {
-  outline: none;
-  border-color: #7b61ff;
-}
-
-/* --- Clear Filters Button --- */
-#cf-clear-filters {
-  background-color: #B5A9C7;
-  color: #fff;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-  margin-top: 24px; /* aligns with dropdowns height */
-}
-
-#cf-clear-filters:hover {
-  background-color: #a292b8;
-}
-
-/* --- Responsive --- */
-@media (max-width: 768px) {
-  #counsellor-finder .filters {
-    justify-content: center;
-    gap: 10px;
-  }
-  #counsellor-finder .filters label,
-  #cf-clear-filters {
-    margin-top: 0;
-  }
 }
