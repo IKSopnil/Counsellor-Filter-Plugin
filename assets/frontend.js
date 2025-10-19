@@ -24,20 +24,85 @@ jQuery(document).ready(function ($) {
   }
 
   /* ========= Render Dropdown Filters (show all terms) ========= */
-  function renderFilters() {
-    Object.keys($filters).forEach((tax) => {
-      const $select = $filters[tax];
-      $select.find('option:not(:first)').remove(); // keep “All”, clear others
+/* ========= Render Dropdown Filters (robust) ========= */
+function renderFilters() {
+  const taxList = Object.keys($filters); // ['specialty','client_group','location']
 
-      $.get(`${wpApiSettings.root}wp/v2/${tax}?per_page=100`, function (terms) {
-        if (Array.isArray(terms)) {
+  // Step 1: ask our plugin endpoint for term IDs collected from counsellor posts
+  $.get(cfData.restUrl + 'counsellors')
+    .done(function (resp) {
+      // resp.terms should be { specialty: [ids...], client_group: [...], location: [...] }
+      taxList.forEach((tax) => {
+        const $select = $filters[tax];
+        $select.find('option:not(:first)').remove(); // clear previous options except "All"
+
+        const ids = Array.isArray(resp.terms && resp.terms[tax]) ? resp.terms[tax] : [];
+
+        // Helper to append terms to select
+        const appendTerms = (terms) => {
           terms.forEach((term) => {
             $select.append(`<option value="${term.id}">${term.name}</option>`);
           });
+        };
+
+        // If we have IDs from the plugin REST response, fetch those term details (faster & accurate)
+        if (ids.length) {
+          // WP REST accepts include=1,2,3 and per_page up to 100
+          const includeParam = ids.join(',');
+          $.get(`${wpApiSettings.root}wp/v2/${tax}?include=${includeParam}&per_page=100&hide_empty=false`)
+            .done(function (terms) {
+              if (Array.isArray(terms) && terms.length) {
+                appendTerms(terms);
+              } else {
+                // If that returned empty, fallback to fetching all terms
+                console.warn(`No terms returned for include(${includeParam}). Falling back to all terms for ${tax}.`);
+                fetchAllTermsAndAppend(tax, appendTerms);
+              }
+            })
+            .fail(function (jqXHR, textStatus, err) {
+              console.error(`Error fetching terms by include for ${tax}:`, textStatus, err);
+              // fallback
+              fetchAllTermsAndAppend(tax, appendTerms);
+            });
+        } else {
+          // No term IDs from plugin endpoint: fetch all terms (including empty terms)
+          fetchAllTermsAndAppend(tax, appendTerms);
         }
       });
+    })
+    .fail(function () {
+      console.error('Could not reach plugin REST endpoint; falling back to fetching all terms directly.');
+      // Fall back: fetch all terms for each taxonomy
+      taxList.forEach((tax) => {
+        const $select = $filters[tax];
+        $select.find('option:not(:first)').remove();
+        fetchAllTermsAndAppend(tax, (terms) => {
+          terms.forEach((term) => {
+            $select.append(`<option value="${term.id}">${term.name}</option>`);
+          });
+        });
+      });
     });
+
+  // Helper: fetch all terms for a taxonomy, handling pagination
+  function fetchAllTermsAndAppend(tax, appendCallback, page = 1, accum = []) {
+    $.get(`${wpApiSettings.root}wp/v2/${tax}?per_page=100&page=${page}&hide_empty=false`)
+      .done(function (terms, textStatus, xhr) {
+        accum = accum.concat(terms || []);
+        const totalPages = parseInt(xhr.getResponseHeader('X-WP-TotalPages') || '1', 10);
+        if (page < totalPages) {
+          // fetch next page
+          fetchAllTermsAndAppend(tax, appendCallback, page + 1, accum);
+        } else {
+          appendCallback(accum);
+        }
+      })
+      .fail(function (jqXHR, textStatus, err) {
+        console.error(`Failed to fetch terms for ${tax} (page ${page}):`, textStatus, err);
+      });
   }
+}
+
 
   /* ========= Render Counsellor Cards ========= */
   function renderCounsellors(counsellors) {
